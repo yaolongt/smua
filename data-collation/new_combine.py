@@ -275,7 +275,9 @@ def structure_data(schedule, schedule_map, session_datetime_map, session_venue_m
     return res
 
 if __name__ == "__main__":
-    if "gvSession.xlsx" not in os.listdir() or "Manage Schedule.xlsx" not in os.listdir() or "Enrolment Summary.xlsx" not in os.listdir():
+    if "gvSession.xlsx" not in os.listdir()\
+        or "Manage Schedule.xlsx" not in os.listdir()\
+        or "Enrolment Summary.xlsx" not in os.listdir():
         exit("Files are missing!")
     
     get_school_buildings()
