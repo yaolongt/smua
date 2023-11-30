@@ -126,29 +126,60 @@ def map_sessions(session, session_map):
     """
     session_datetime, session_venue = get_combined_values(session)
 
-    # Set 'Schedule #' to be the key to link all the session together
-    # `[[<Session>],[<Assessment>]]` is to keep the Assessment type and the normal session differentiated.
-    session_datetime_map = {key: [[], []] for key in session_map["Sch #"].values()}
-    session_venue_map = {key: [[], []] for key in session_map["Sch #"].values()}
+    sessions_details = {
+        key: {
+            "dept": None,
+            "assessment": {
+                "datetime": [],
+                "venue": []
+            },
+            "normal": {
+                "datetime": [],
+                "venue": []
+            }
+        } for key in session_map["Sch #"].values()
+    }
 
     for i in range(len(session)):
         schedule_no = session_map['Sch #'][i]
 
-        # Add type of 'Assessment' into the map
-        if session_map['Course Type'][i] == 'Assessment': 
+        if session_map['Course Type'][i] == 'Assessment':
             schedule_no = session_map['Related Schedule #'][i]
 
             # Check if the 'Related Schedule #' is in inside the map as key
-            if schedule_no not in session_datetime_map:
+            if schedule_no not in sessions_details:
                 continue
-            
-            session_datetime_map[schedule_no][1].append(session_datetime[i])
-            session_venue_map[schedule_no][1].append(session_venue[i])
+            sessions_details[schedule_no]["assessment"]["datetime"].append(session_datetime[i])
+            sessions_details[schedule_no]["assessment"]["venue"].append(session_venue[i])
         else:
-            session_datetime_map[schedule_no][0].append(session_datetime[i])
-            session_venue_map[schedule_no][0].append(session_venue[i])
+            sessions_details[schedule_no]["normal"]["datetime"].append(session_datetime[i])
+            sessions_details[schedule_no]["normal"]["venue"].append(session_venue[i])
+            
 
-    return session_datetime_map, session_venue_map
+    # # Set 'Schedule #' to be the key to link all the session together
+    # # `[[<Session>],[<Assessment>]]` is to keep the Assessment type and the normal session differentiated.
+    # session_datetime_map = {key: [[], []] for key in session_map["Sch #"].values()}
+    # session_venue_map = {key: [[], []] for key in session_map["Sch #"].values()}
+
+    # for i in range(len(session)):
+    #     schedule_no = session_map['Sch #'][i]
+
+    #     # Add type of 'Assessment' into the map
+    #     if session_map['Course Type'][i] == 'Assessment': 
+    #         schedule_no = session_map['Related Schedule #'][i]
+
+    #         # Check if the 'Related Schedule #' is in inside the map as key
+    #         if schedule_no not in session_datetime_map:
+    #             continue
+            
+    #         session_datetime_map[schedule_no][1].append(session_datetime[i])
+    #         session_venue_map[schedule_no][1].append(session_venue[i])
+    #     else:
+    #         session_datetime_map[schedule_no][0].append(session_datetime[i])
+    #         session_venue_map[schedule_no][0].append(session_venue[i])
+
+    # return session_datetime_map, session_venue_map
+    return sessions_details
 
 
 def format_location_by_date(sorted_venue):
@@ -214,7 +245,7 @@ def add_total_pax(registered_pax, enr_pax):
         return enr_pax + registered_pax
 
 
-def structure_data(schedule_map, session_datetime_map, session_venue_map, enroll_map, audience_map, pillar_map):
+def structure_data(schedule_map, sessions_details, enroll_map, audience_map, pillar_map):
     """
     This function is to structure the data accord to the output.
     Do note that there are quite a number of data manipulation to get the desired output.
@@ -236,13 +267,13 @@ def structure_data(schedule_map, session_datetime_map, session_venue_map, enroll
         runid = value['Course RunID']
 
         # Join the Normal Session datetime and Assessment Session datetime in order
-        datetime_data = copy.deepcopy(sorted(session_datetime_map[key][0]))
-        datetime_data.extend(sorted(session_datetime_map[key][1]))
+        datetime_data = copy.deepcopy(sorted(sessions_details[key]["normal"]["datetime"]))
+        datetime_data.extend(sorted(sessions_details[key]["assessment"]["datetime"]))
         datetime = " \n".join(datetime_data)
 
         # Join the Normal Session venue and Assessment Session venue in order
-        venue_data = copy.deepcopy(sorted(session_venue_map[key][0]))
-        venue_data.extend(sorted(session_venue_map[key][1]))
+        venue_data = copy.deepcopy(sorted(sessions_details[key]["normal"]["venue"]))
+        venue_data.extend(sorted(sessions_details[key]["assessment"]["venue"]))
 
         sorted_venue = []
         category_venue = []
@@ -259,7 +290,7 @@ def structure_data(schedule_map, session_datetime_map, session_venue_map, enroll
         course_audience = audience_map[key]
         start_date = value['Sch S-Date'].strftime('%Y-%m-%d')
         end_date = value['Sch E-Date'].strftime('%Y-%m-%d')
-        no_sessions = f"No. of sessions: {len(session_venue_map[key][0])} \nNo. of assessments: {len(session_venue_map[key][1])}"
+        no_sessions = f'No. of sessions: {len(sessions_details[key]["normal"]["datetime"])} \nNo. of assessments: {len(sessions_details[key]["assessment"]["datetime"])}'
         enrolled_pax = value['Enr Pax']
         registered_pax = enroll_map[key]['# Registered'] if key in enroll_map else '-'
         total_pax = add_total_pax(registered_pax, enrolled_pax)
@@ -281,11 +312,12 @@ if __name__ == "__main__":
     
     session, schedule, enroll = read_files()
     session_map, schedule_map, enroll_map = convert_to_dict(session, schedule, enroll)
-    session_datetime_map, session_venue_map = map_sessions(session, session_map)
+    # session_datetime_map, session_venue_map = map_sessions(session, session_map)
+    sessions_details = map_sessions(session, session_map)
     audience_map = get_course_audience(schedule_map)
     pillar_map = get_course_pillar(session, session_map)
 
-    data = structure_data(schedule_map, session_datetime_map, session_venue_map, enroll_map, audience_map, pillar_map)
+    data = structure_data(schedule_map, sessions_details, enroll_map, audience_map, pillar_map)
 
     current_datetime = dt.now().strftime("%Y%m%d_%H%M")
     filename = f'CDL_{current_datetime}.xlsx'
