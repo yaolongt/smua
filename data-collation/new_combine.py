@@ -99,26 +99,6 @@ def get_course_audience(schedule_map):
     return course_audience_map
 
 
-def get_course_pillar(session, session_map):
-    """
-    This function gets all course pillars related to the course.
-    """
-    name_dict = {'Finance & Technology': 'FIT',
-                 'Human Capital, Management & Leadership': 'HCML',
-                 'Business Management': 'BM',
-                 'Services, Operations and Business Improvement': 'SOBI'}
-    pillar_map = {}
-
-    for i in range(len(session)):
-        dept = name_dict.get(session_map['Dept'][i])
-        if not dept:
-            dept = "No dept"
-
-        pillar_map[session_map['Sch #'][i]] = dept
-
-    return pillar_map
-
-
 def map_sessions(session, session_map):
     """
     Combine all the values of Session Date Time and Session Venue to a 'key'.
@@ -282,7 +262,8 @@ def structure_data(schedule_map, sessions_details, enroll_map, audience_map):
         course_audience = audience_map[key]
         start_date = value['Sch S-Date'].strftime('%Y-%m-%d')
         end_date = value['Sch E-Date'].strftime('%Y-%m-%d')
-        no_sessions = f'No. of sessions: {len(sessions_details[key]["normal"]["datetime"])} \nNo. of assessments: {len(sessions_details[key]["assessment"]["datetime"])}'
+        no_sessions = f'No. of sessions: {len(sessions_details[key]["normal"]["datetime"])} \
+                        \nNo. of assessments: {len(sessions_details[key]["assessment"]["datetime"])}'
         enrolled_pax = value['Enr Pax']
         registered_pax = enroll_map[key]['# Registered'] if key in enroll_map else '-'
         total_pax = add_total_pax(registered_pax, enrolled_pax)
