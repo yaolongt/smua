@@ -36,7 +36,7 @@ def convert_to_dict(session, schedule, enroll):
     Convert file from dataframe to JSON key-value pair
     """
     session_map = session.to_dict()
-    schedule_map = schedule.to_dict()
+    schedule_map = schedule.set_index("Sch #").T.to_dict()
     enroll_map = enroll.set_index("Schedule #").T.to_dict()
 
     return session_map, schedule_map, enroll_map
@@ -54,6 +54,8 @@ def read_files():
     session = session.fillna("-")
     schedule = schedule.fillna("-")
     enroll = enroll.fillna("-")
+
+    get_school_buildings()
 
     return session, schedule, enroll
 
@@ -82,18 +84,30 @@ def get_course_audience(schedule, schedule_map):
     This function gets course audiences, with a certain formatting.
     """
     course_audience_map = {}
-    for i in range(len(schedule)):
-        course_no = schedule_map['Sch #'][i]
-        schedule_audience =  schedule_map['Schedule Audience'][i]
+    for key, value in schedule_map.items():
+        schedule_audience = value['Schedule Audience']
 
         if schedule_audience == '-':
-            course_audience_map[course_no] = '-'
+            course_audience_map[key] = '-'
         else:
-            client_name = schedule_map['Client Name'][i]
+            client_name = value['Client Name']
             if client_name == '-':
-                course_audience_map[course_no] = schedule_audience
+                course_audience_map[key] = schedule_audience
             else:
-                course_audience_map[course_no] = schedule_map['Schedule Audience'][i] + " : " + schedule_map['Client Name'][i]
+                course_audience_map[key] = value['Schedule Audience'] + " : " + value['Client Name']
+
+    # for i in range(len(schedule)):
+    #     course_no = schedule_map['Sch #'][i]
+    #     schedule_audience =  schedule_map['Schedule Audience'][i]
+
+    #     if schedule_audience == '-':
+    #         course_audience_map[course_no] = '-'
+    #     else:
+    #         client_name = schedule_map['Client Name'][i]
+    #         if client_name == '-':
+    #             course_audience_map[course_no] = schedule_audience
+    #         else:
+    #             course_audience_map[course_no] = schedule_map['Schedule Audience'][i] + " : " + schedule_map['Client Name'][i]
     
     return course_audience_map
 
@@ -221,29 +235,28 @@ def structure_data(schedule, schedule_map, session_datetime_map, session_venue_m
     """
     res = []
 
-    for i in range(len(schedule)):
-        if schedule_map['Course Type'][i] == 'Assessment':
+    for key, value in schedule_map.items():
+        if value['Course Type'] == 'Assessment':
             continue
 
         # Extract values
-        schedule_no = schedule_map['Sch #'][i]
-        pillar = pillar_map.get(schedule_no)
+        pillar = pillar_map.get(key)
 
         if not pillar:
             continue
 
-        title = schedule_map['Course Title'][i]
-        status = schedule_map['Sch Status'][i]
-        runid = schedule_map['Course RunID'][i]
+        title = value['Course Title']
+        status = value['Sch Status']
+        runid = value['Course RunID']
 
         # Join the Normal Session datetime and Assessment Session datetime in order
-        datetime_data = copy.deepcopy(sorted(session_datetime_map[schedule_no][0]))
-        datetime_data.extend(sorted(session_datetime_map[schedule_no][1]))
+        datetime_data = copy.deepcopy(sorted(session_datetime_map[key][0]))
+        datetime_data.extend(sorted(session_datetime_map[key][1]))
         datetime = " \n".join(datetime_data)
 
         # Join the Normal Session venue and Assessment Session venue in order
-        venue_data = copy.deepcopy(sorted(session_venue_map[schedule_no][0]))
-        venue_data.extend(sorted(session_venue_map[schedule_no][1]))
+        venue_data = copy.deepcopy(sorted(session_venue_map[key][0]))
+        venue_data.extend(sorted(session_venue_map[key][1]))
 
         sorted_venue = []
         category_venue = []
@@ -257,15 +270,15 @@ def structure_data(schedule, schedule_map, session_datetime_map, session_venue_m
         location_by_date = format_location_by_date(sorted_venue)
         session_venue = " \n".join(sorted_venue)
         delivery_mode = "F2F" if "Online" not in session_venue else "Online"
-        course_audience = audience_map[schedule_no]
-        start_date = schedule_map['Sch S-Date'][i].strftime('%Y-%m-%d')
-        end_date = schedule_map['Sch E-Date'][i].strftime('%Y-%m-%d')
-        no_sessions = f"No. of sessions: {len(session_venue_map[schedule_no][0])} \nNo. of assessments: {len(session_venue_map[schedule_no][1])}"
-        enrolled_pax = schedule_map['Enr Pax'][i]
-        registered_pax = enroll_map[schedule_no]['# Registered'] if schedule_no in enroll_map else '-'
+        course_audience = audience_map[key]
+        start_date = value['Sch S-Date'].strftime('%Y-%m-%d')
+        end_date = value['Sch E-Date'].strftime('%Y-%m-%d')
+        no_sessions = f"No. of sessions: {len(session_venue_map[key][0])} \nNo. of assessments: {len(session_venue_map[key][1])}"
+        enrolled_pax = value['Enr Pax']
+        registered_pax = enroll_map[key]['# Registered'] if key in enroll_map else '-'
         total_pax = add_total_pax(registered_pax, enrolled_pax)
 
-        data = [pillar, schedule_no, title, status, runid, delivery_mode,\
+        data = [pillar, key, title, status, runid, delivery_mode,\
                 course_audience, start_date, end_date, datetime, session_venue,\
                 location_by_date, no_sessions, registered_pax, enrolled_pax, total_pax,\
                 " \n".join(category_venue), f'Last Updated: -']
@@ -275,12 +288,11 @@ def structure_data(schedule, schedule_map, session_datetime_map, session_venue_m
     return res
 
 if __name__ == "__main__":
-    if "gvSession.xlsx" not in os.listdir()\
-        or "Manage Schedule.xlsx" not in os.listdir()\
+    print(os.listdir())
+    if "gvSession.xlsx" not in os.listdir() \
+        or "Manage Schedule.xlsx" not in os.listdir() \
         or "Enrolment Summary.xlsx" not in os.listdir():
         exit("Files are missing!")
-    
-    get_school_buildings()
     
     session, schedule, enroll = read_files()
     session_map, schedule_map, enroll_map = convert_to_dict(session, schedule, enroll)
