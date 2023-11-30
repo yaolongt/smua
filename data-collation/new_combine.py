@@ -55,6 +55,8 @@ def read_files():
     schedule = schedule.fillna("-")
     enroll = enroll.fillna("-")
 
+    get_school_buildings()
+
     return session, schedule, enroll
 
 
@@ -280,7 +282,6 @@ if __name__ == "__main__":
         or "Enrolment Summary.xlsx" not in os.listdir():
         exit("Files are missing!")
     
-    get_school_buildings()
     
     session, schedule, enroll = read_files()
     session_map, schedule_map, enroll_map = convert_to_dict(session, schedule, enroll)
