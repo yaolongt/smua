@@ -122,13 +122,19 @@ def get_course_pillar(session, session_map):
 def map_sessions(session, session_map):
     """
     Combine all the values of Session Date Time and Session Venue to a 'key'.
+    Get the pillar of the particular Schedule using the Session.
     The 'key' will be the 'Sch #'.
     """
     session_datetime, session_venue = get_combined_values(session)
 
+    name_dict = {'Finance & Technology': 'FIT',
+                 'Human Capital, Management & Leadership': 'HCML',
+                 'Business Management': 'BM',
+                 'Services, Operations and Business Improvement': 'SOBI'}
+
     sessions_details = {
         key: {
-            "dept": None,
+            "pillar": None,
             "assessment": {
                 "datetime": [],
                 "venue": []
@@ -143,6 +149,13 @@ def map_sessions(session, session_map):
     for i in range(len(session)):
         schedule_no = session_map['Sch #'][i]
 
+        if not sessions_details[schedule_no]["pillar"]:
+            dept = name_dict.get(session_map['Dept'][i])
+            if not dept:
+                dept = "No dept"
+
+            sessions_details[schedule_no]["pillar"] = dept
+
         if session_map['Course Type'][i] == 'Assessment':
             schedule_no = session_map['Related Schedule #'][i]
 
@@ -154,31 +167,7 @@ def map_sessions(session, session_map):
         else:
             sessions_details[schedule_no]["normal"]["datetime"].append(session_datetime[i])
             sessions_details[schedule_no]["normal"]["venue"].append(session_venue[i])
-            
 
-    # # Set 'Schedule #' to be the key to link all the session together
-    # # `[[<Session>],[<Assessment>]]` is to keep the Assessment type and the normal session differentiated.
-    # session_datetime_map = {key: [[], []] for key in session_map["Sch #"].values()}
-    # session_venue_map = {key: [[], []] for key in session_map["Sch #"].values()}
-
-    # for i in range(len(session)):
-    #     schedule_no = session_map['Sch #'][i]
-
-    #     # Add type of 'Assessment' into the map
-    #     if session_map['Course Type'][i] == 'Assessment': 
-    #         schedule_no = session_map['Related Schedule #'][i]
-
-    #         # Check if the 'Related Schedule #' is in inside the map as key
-    #         if schedule_no not in session_datetime_map:
-    #             continue
-            
-    #         session_datetime_map[schedule_no][1].append(session_datetime[i])
-    #         session_venue_map[schedule_no][1].append(session_venue[i])
-    #     else:
-    #         session_datetime_map[schedule_no][0].append(session_datetime[i])
-    #         session_venue_map[schedule_no][0].append(session_venue[i])
-
-    # return session_datetime_map, session_venue_map
     return sessions_details
 
 
@@ -245,7 +234,7 @@ def add_total_pax(registered_pax, enr_pax):
         return enr_pax + registered_pax
 
 
-def structure_data(schedule_map, sessions_details, enroll_map, audience_map, pillar_map):
+def structure_data(schedule_map, sessions_details, enroll_map, audience_map):
     """
     This function is to structure the data accord to the output.
     Do note that there are quite a number of data manipulation to get the desired output.
@@ -256,8 +245,11 @@ def structure_data(schedule_map, sessions_details, enroll_map, audience_map, pil
         if value['Course Type'] == 'Assessment':
             continue
 
+        if not sessions_details.get(key):
+            continue
+
         # Extract values
-        pillar = pillar_map.get(key)
+        pillar = sessions_details.get(key).get('pillar')
 
         if not pillar:
             continue
@@ -312,12 +304,10 @@ if __name__ == "__main__":
     
     session, schedule, enroll = read_files()
     session_map, schedule_map, enroll_map = convert_to_dict(session, schedule, enroll)
-    # session_datetime_map, session_venue_map = map_sessions(session, session_map)
     sessions_details = map_sessions(session, session_map)
     audience_map = get_course_audience(schedule_map)
-    pillar_map = get_course_pillar(session, session_map)
 
-    data = structure_data(schedule_map, sessions_details, enroll_map, audience_map, pillar_map)
+    data = structure_data(schedule_map, sessions_details, enroll_map, audience_map)
 
     current_datetime = dt.now().strftime("%Y%m%d_%H%M")
     filename = f'CDL_{current_datetime}.xlsx'
