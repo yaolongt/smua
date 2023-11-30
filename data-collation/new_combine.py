@@ -79,7 +79,7 @@ def get_combined_values(session):
     return session_datetime, session_venue
 
 
-def get_course_audience(schedule, schedule_map):
+def get_course_audience(schedule_map):
     """
     This function gets course audiences, with a certain formatting.
     """
@@ -96,19 +96,6 @@ def get_course_audience(schedule, schedule_map):
             else:
                 course_audience_map[key] = value['Schedule Audience'] + " : " + value['Client Name']
 
-    # for i in range(len(schedule)):
-    #     course_no = schedule_map['Sch #'][i]
-    #     schedule_audience =  schedule_map['Schedule Audience'][i]
-
-    #     if schedule_audience == '-':
-    #         course_audience_map[course_no] = '-'
-    #     else:
-    #         client_name = schedule_map['Client Name'][i]
-    #         if client_name == '-':
-    #             course_audience_map[course_no] = schedule_audience
-    #         else:
-    #             course_audience_map[course_no] = schedule_map['Schedule Audience'][i] + " : " + schedule_map['Client Name'][i]
-    
     return course_audience_map
 
 
@@ -193,7 +180,6 @@ def find_venue_type(venue):
     """
     Get the venue type based on session's venue
     """
-    # print(schools)
     if 'Venue: -' in venue or 'Venue: Cancelled' in venue:
         return venue.split("Venue:")[0] + '-'
     elif 'Online' in venue:
@@ -228,7 +214,7 @@ def add_total_pax(registered_pax, enr_pax):
         return enr_pax + registered_pax
 
 
-def structure_data(schedule, schedule_map, session_datetime_map, session_venue_map, enroll_map, audience_map, pillar_map):
+def structure_data(schedule_map, session_datetime_map, session_venue_map, enroll_map, audience_map, pillar_map):
     """
     This function is to structure the data accord to the output.
     Do note that there are quite a number of data manipulation to get the desired output.
@@ -288,7 +274,6 @@ def structure_data(schedule, schedule_map, session_datetime_map, session_venue_m
     return res
 
 if __name__ == "__main__":
-    print(os.listdir())
     if "gvSession.xlsx" not in os.listdir() \
         or "Manage Schedule.xlsx" not in os.listdir() \
         or "Enrolment Summary.xlsx" not in os.listdir():
@@ -297,10 +282,10 @@ if __name__ == "__main__":
     session, schedule, enroll = read_files()
     session_map, schedule_map, enroll_map = convert_to_dict(session, schedule, enroll)
     session_datetime_map, session_venue_map = map_sessions(session, session_map)
-    audience_map = get_course_audience(schedule, schedule_map)
+    audience_map = get_course_audience(schedule_map)
     pillar_map = get_course_pillar(session, session_map)
 
-    data = structure_data(schedule, schedule_map, session_datetime_map, session_venue_map, enroll_map, audience_map, pillar_map)
+    data = structure_data(schedule_map, session_datetime_map, session_venue_map, enroll_map, audience_map, pillar_map)
 
     current_datetime = dt.now().strftime("%Y%m%d_%H%M")
     filename = f'CDL_{current_datetime}.xlsx'
