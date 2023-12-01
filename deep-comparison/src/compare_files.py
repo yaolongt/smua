@@ -171,10 +171,9 @@ def export_to_file(new_row={}):
 
     wb = openpyxl.load_workbook(filename=parent_dir+export_filename)
     ws = wb['Sheet1']
-    conditional_col = 1
     fill = PatternFill(start_color='FFCC99', end_color='FFCC99', fill_type="solid")
     for row in ws.iter_rows(min_row=2, values_only=False):
-        cell_value = row[conditional_col].value
+        cell_value = row[1].value
 
         # Check if condition is met
         if cell_value in new_row:
