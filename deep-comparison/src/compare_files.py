@@ -17,19 +17,23 @@ new_cols.extend(['Last Updated', "Changes From", "Changes To"])
 
 # get current directory
 path = os.getcwd()
+# get parent directory
 parent_dir = os.path.abspath(os.path.join(path, os.pardir)) + "/"
 
+# get files with file name that starts with `CDL` and ends with `.xlsx` (Excel extension)
+# sort them in order
 files = sorted([parent_dir + f for f in os.listdir(parent_dir) if f.startswith('CDL') and f.endswith('.xlsx')])
-files_df = []
-files_dict = []
+files_df = []   # Storing DataFrame of files
+files_dict = [] # Storing Dictionary of files
 datetime_now = dt.now().strftime("%Y-%m-%d %H:%M")
 new_row = {}
 
 
-"""
-    Read files as Dataframe and convert into Dict
-"""
 def read_files():
+    """
+        Read files as Dataframe and convert into Dictionary.
+        Stores the result in an array of Dictionary.
+    """
     for i in files:
         file_read = pd.read_excel(i, usecols=headers, converters={"Total Pax": int})
         files_df.append(file_read)
@@ -37,10 +41,10 @@ def read_files():
     files_dict.append(files_df[0].set_index("Course No.").T.to_dict())
     files_dict.append(files_df[1].set_index("Course No.").T.to_dict())
 
-"""
-    Update files last update time
-"""
 def update_files_last_update(datetime_now):
+    """
+        Update CDL files with last update time
+    """
     for i in range(len(files_df)):
         files_df[i].loc[:, ['Last Updated']] = f'Last Updated: {datetime_now}'
 
@@ -70,11 +74,11 @@ def update_files_last_update(datetime_now):
         writer.close()
 
 
-"""
-    Check the differences between the new and the old files.
-    Record down the modified rows, and note down the newly added rows.
-"""
 def check_differences():
+    """
+        Check the differences between the new and the old files.
+        Record down the modified rows, and note down the newly added rows.
+    """
     modified_row = {}
 
     for k, v in files_dict[1].items():
@@ -100,10 +104,10 @@ def check_differences():
     return modified_row
 
 
-"""
-   Structure the data according to the format of the original files
-"""
 def structure_data(modified_row={}):
+    """
+        Structure the data according to the format of the original files
+    """
     res = []
     for k, v in files_dict[1].items():
         temp = []
@@ -123,10 +127,10 @@ def structure_data(modified_row={}):
     return res
 
 
-"""
-   Export the new data into the file
-"""
 def export_to_file():
+    """
+        Export the new data into the file with formatting
+    """
     df = pd.DataFrame(new_data, columns=new_cols)
     df = df.sort_values(['Start Date', 'Course No.'])
     file_names = []
