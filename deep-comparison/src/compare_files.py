@@ -26,7 +26,6 @@ files = sorted([parent_dir + f for f in os.listdir(parent_dir) if f.startswith('
 files_df = []   # Storing DataFrame of files
 files_dict = [] # Storing Dictionary of files
 datetime_now = dt.now().strftime("%Y-%m-%d %H:%M")
-new_row = {}
 
 
 def read_files():
@@ -80,31 +79,33 @@ def check_differences():
         Record down the modified rows, and note down the newly added rows.
     """
     modified_row = {}
-
-    for k, v in files_dict[1].items():
-        # new value
-        if k not in files_dict[0]:
-            new_row[k] = v
+    new_row = {}
 
     diff = dd(files_dict[0], files_dict[1], ignore_order=True)
 
-    for key, value in diff['values_changed'].items():
-        course_no = key.split("']['")[0].split("['")[1]
-        column_key = key.split("']['")[1].split("']")[0]
-        temp = modified_row.get(course_no, [])
-        if temp == []:
-            temp.append(f'{column_key} changed from \n{value["old_value"]}')
-            temp.append(f'{column_key} changed to \n{value["new_value"]}')
-        else:
-            temp[0] += f'\n\n{column_key} changed from \n{value["old_value"]}'
-            temp[1] += f'\n\n{column_key} changed to \n{value["new_value"]}'
+    if diff.get('dictionary_item_added'):
+        for str in diff['dictionary_item_added']:
+            course_no = str.split("['")[1].split("']")[0]
+            new_row[course_no] = files_dict[1][course_no]
 
-        modified_row[course_no] = temp
+    if diff.get('values_changed'):
+        for key, value in diff['values_changed'].items():
+            course_no = key.split("']['")[0].split("['")[1]
+            column_key = key.split("']['")[1].split("']")[0]
+            temp = modified_row.get(course_no, [])
+            if temp == []:
+                temp.append(f'{column_key} changed from \n{value["old_value"]}')
+                temp.append(f'{column_key} changed to \n{value["new_value"]}')
+            else:
+                temp[0] += f'\n\n{column_key} changed from \n{value["old_value"]}'
+                temp[1] += f'\n\n{column_key} changed to \n{value["new_value"]}'
+
+            modified_row[course_no] = temp
     
-    return modified_row
+    return modified_row, new_row
 
 
-def structure_data(modified_row={}):
+def structure_data(modified_row={}, new_row={}):
     """
         Structure the data according to the format of the original files
     """
@@ -127,7 +128,7 @@ def structure_data(modified_row={}):
     return res
 
 
-def export_to_file():
+def export_to_file(new_row={}):
     """
         Export the new data into the file with formatting
     """
@@ -192,9 +193,9 @@ if __name__ == '__main__':
     read_files()
 
     if files_dict[0] != files_dict[1]:
-        modified_row = check_differences()
-        new_data = structure_data(modified_row)
-        export_to_file()
+        modified_row, new_row = check_differences()
+        new_data = structure_data(modified_row, new_row)
+        export_to_file(new_row)
     else:
         new_data = files_df[1]
         new_data['Changes From'] = 'Not modified'
