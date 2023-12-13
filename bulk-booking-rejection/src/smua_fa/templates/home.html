@@ -1,0 +1,79 @@
+<html>
+  <head>
+    <title>SMU Bulk Booking Rejection System</title>
+  </head>
+  <body>
+    <div style="display: flex; flex-direction: column; align-items: center">
+      <div>
+        <div style="margin-bottom: 2rem">
+          <h1>SMU Bulk Booking Rejection System</h1>
+          <div
+            style="border-style: solid; width: 30rem; padding: 0 0 1rem 1rem"
+          >
+            <h3>How to use?</h3>
+            <p>Input Excel Sheet and Error Message, and press submit!</p>
+            <div style="width: 95%">
+              <p style="font-weight: bold; font-size: 12px">
+                An example of the Error Message will be:-
+              </p>
+              <p style="font-size: 12px">
+                • Row 3 status: SOE/SCIS2 Seminar Room 2-3 on 21-Jul-2023 08:00
+                – 18:00 (10hrs): The specified booking of SOE/SCIS2 Seminar Room
+                2-8 on 21 Jul, Friday 08:00 – 18:00 is invalid due to the
+                following error: The specified booking time is being booked by
+                another user.
+              </p>
+              <p style="font-size: 12px">
+                • Row 13 status: SOE/SCIS2 Seminar Room 2-8 on 23-Jul-2027 08:00
+                – 18:00 (10hrs): The specified booking of SOE/SCIS2 Seminar Room
+                2-8 on 21 Jul, Friday 08:00 – 18:00 is invalid due to the
+                following error: The specified booking time is being booked by
+                another user.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form
+          method="POST"
+          action="{% url 'home' %}"
+          enctype="multipart/form-data"
+        >
+          {% csrf_token %}
+          <div style="margin-bottom: 1rem">
+            <a>Error message:</a>
+            {{ input_form.input_field }}
+          </div>
+          <div>
+            <a>Choose an Excel file: </a>
+            {{ input_form.file }}
+          </div>
+          <button
+            type="submit"
+            style="margin: 2rem 0 2rem; height: 2rem; width: 20%"
+            id="submitButton"
+            onclick="downloadFiles()"
+          >
+            Submit
+          </button>
+        </form>
+      </div>
+
+      <!--<div>
+        <div>
+          <h2>System Information</h2>
+        </div>
+        {% if content and content != 'Unsupported file type' %}
+        <h4>Uploaded File Content</h4>
+        {{ content|safe }}
+        {% else %}
+        <p style="color:red;">{{ content }} </p>
+        {% endif %}
+
+        {% if input_value %}
+        <p>You've entered: {{ input_value }}</p>
+        {% endif %}
+      </div>-->
+    </div>
+  </body>
+</html>
