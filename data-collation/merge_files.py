@@ -328,7 +328,7 @@ if __name__ == "__main__":
     data_df = pd.DataFrame(data, columns=new_cols)
     data_df = data_df.sort_values(by=['Start Date', 'Course No.'])
 
-    writer = pd.ExcelWriter(filename, engine='xlsxwriter')
+    writer = pd.ExcelWriter("test.xlsx", engine='xlsxwriter')
 
     data_df.to_excel(writer, sheet_name='Sheet1', index=False)
 
