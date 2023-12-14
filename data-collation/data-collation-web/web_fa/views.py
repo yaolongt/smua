@@ -42,6 +42,7 @@ class InputForm(forms.Form):
     gv_file = forms.FileField(label="Upload GV Session Excel sheet")
     schedule_file = forms.FileField(label="Upload Manage Schedule Excel sheet")
     enrollment_summary_file = forms.FileField(label="Upload Enrollment Summary Excel sheet")
+    days_input = forms.IntegerField(min_value=0)
 
 def read_files(input_form):
     """
@@ -295,20 +296,25 @@ def structure_data(schedule_map, sessions_details, enroll_map, audience_map):
 
     return res
 
-def output_files(data_df, filename):
-    buf = io.BytesIO()
-    writer = pd.ExcelWriter(buf, engine='xlsxwriter')
-    data_df.to_excel(writer, sheet_name='Sheet1', index=False)
+def find_course_more_than_6days(data, days):
+    res = []
+    for i in range(len(data)):
+        start_date = dt.datetime.strptime(data[i][7], '%Y-%m-%d').date()
+        end_date = dt.datetime.strptime(data[i][8], '%Y-%m-%d').date()
+        
+        # if the course start and end dates are more than 6 days apart, add into list
+        if (end_date - start_date).days > days:
+            res.append(data[i])
 
-    workbook = writer.book
-    worksheet = writer.sheets['Sheet1']
+    return res
 
+def format_cells(data, workbook, worksheet):
     normal_text = workbook.add_format({'text_wrap': True})
     bold_text = workbook.add_format({'text_wrap': True, 'bold': True, 'font_size': 15})
     header_format = workbook.add_format({'bold': True, 'fg_color': "#ffcccc", 'border': 1, 'font_size': 15})
 
     # To color the header column and bold it
-    for colno, value in enumerate(data_df.columns.values):
+    for colno, value in enumerate(data.columns.values):
         worksheet.write(0, colno, value, header_format)
 
     worksheet.set_column('A:A', 20, normal_text)
@@ -320,6 +326,22 @@ def output_files(data_df, filename):
     worksheet.set_column('M:M', 20, normal_text)
     worksheet.set_column('N:P', 20, bold_text)
     worksheet.set_column('Q:R', 20, normal_text)
+
+def output_files(data_df, long_period_df, filename, days):
+    buf = io.BytesIO()
+    writer = pd.ExcelWriter(buf, engine='xlsxwriter')
+    data_df.to_excel(writer, sheet_name='Sheet1', index=False)
+    sheet_name = f'Course > {days} days'
+    long_period_df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+    workbook = writer.book
+
+    worksheet = writer.sheets['Sheet1']
+    format_cells(data_df, workbook, worksheet)
+
+    worksheet = writer.sheets[sheet_name]
+    format_cells(long_period_df, workbook, worksheet)
+
 
     writer.close()
     buf.seek(0)
@@ -340,6 +362,7 @@ def home (request):
             if not valid:
                 return render(request, 'home.html',{"input_form": input_form, "error_msg": "Please upload files with correct names: `gvSession.xlsx`, `Manage Schedule.xlsx`, `Enrolment Summary.xlsx`"})
             else:
+                days = input_form.cleaned_data["days_input"]
                 session_map, schedule_map, enroll_map = convert_to_dict(session, schedule, enroll)
                 sessions_details = map_sessions(session, session_map)
                 audience_map = get_course_audience(schedule_map)
@@ -354,7 +377,10 @@ def home (request):
                 data_df = pd.DataFrame(data, columns=new_cols)
                 data_df = data_df.sort_values(by=['Start Date', 'Course No.'])
 
-                response = output_files(data_df, filename)
+                long_period = find_course_more_than_6days(data, days)
+                long_period_df = pd.DataFrame(long_period, columns=new_cols).sort_values(by=['Start Date', 'End Date'])
+
+                response = output_files(data_df, long_period_df, filename, days)
                 
                 return response
 

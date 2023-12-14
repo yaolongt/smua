@@ -12,17 +12,49 @@
           enctype="multipart/form-data"
         >
           {% csrf_token %}
-          <div style="margin-bottom: 1rem">
-            <a>GV Session Excel file: </a>
-            {{ input_form.gv_file }}
+          <div
+            style="
+              margin-bottom: 1rem;
+              display: flex;
+              flex-direction: row;
+              justify-content: space-between;
+            "
+          >
+            <div>GV Session Excel file:</div>
+            <div>{{ input_form.gv_file }}</div>
           </div>
-          <div style="margin-bottom: 1rem">
-            <a>Manage Schedule Excel file: </a>
-            {{ input_form.schedule_file }}
+          <div
+            style="
+              margin-bottom: 1rem;
+              display: flex;
+              flex-direction: row;
+              justify-content: space-between;
+            "
+          >
+            <div>Manage Schedule Excel file:</div>
+            <div>{{ input_form.schedule_file }}</div>
           </div>
-          <div style="margin-bottom: 1rem">
-            <a>Enrollment Summary Excel file: </a>
-            {{ input_form.enrollment_summary_file }}
+          <div
+            style="
+              margin-bottom: 1rem;
+              display: flex;
+              flex-direction: row;
+              justify-content: space-between;
+            "
+          >
+            <div>Enrollment Summary Excel file:</div>
+            <div>{{ input_form.enrollment_summary_file }}</div>
+          </div>
+          <div
+            style="
+              margin-bottom: 1rem;
+              display: flex;
+              flex-direction: row;
+              justify-content: space-between;
+            "
+          >
+            <div>Days to flag out:</div>
+            <div>{{ input_form.days_input }}</div>
           </div>
           <div
             style="display: flex; flex-direction: column; align-items: center"
