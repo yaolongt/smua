@@ -285,6 +285,9 @@ def find_course_more_than_6days(data, days):
     return res
 
 def format_cells(workbook, worksheet):
+    """
+    Cell formatting
+    """
     normal_text = workbook.add_format({'text_wrap': True})
     bold_text = workbook.add_format({'text_wrap': True, 'bold': True, 'font_size': 15})
     header_format = workbook.add_format({'bold': True, 'fg_color': "#ffcccc", 'border': 1, 'font_size': 15})
@@ -323,8 +326,7 @@ if __name__ == "__main__":
     current_datetime = dt.now().strftime("%Y%m%d_%H%M")
     filename = f'CDL_{current_datetime}.xlsx'
 
-    data_df = pd.DataFrame(data, columns=new_cols)
-    data_df = data_df.sort_values(by=['Start Date', 'Course No.'])
+    data_df = pd.DataFrame(data, columns=new_cols).sort_values(by=['Start Date', 'Course No.'])
 
     writer = pd.ExcelWriter(filename, engine='xlsxwriter')
 
