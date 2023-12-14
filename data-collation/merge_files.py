@@ -284,7 +284,7 @@ def find_course_more_than_6days(data, days):
 
     return res
 
-def format_cells(workbook, worksheet):
+def format_cells(data, workbook, worksheet):
     """
     Cell formatting
     """
@@ -294,7 +294,7 @@ def format_cells(workbook, worksheet):
 
 
     # To color the header column and bold it
-    for colno, value in enumerate(data_df.columns.values):
+    for colno, value in enumerate(data.columns.values):
         worksheet.write(0, colno, value, header_format)
 
     worksheet.set_column('A:A', 20, normal_text)
@@ -336,16 +336,17 @@ if __name__ == "__main__":
 
     # Raw CDL Data in Sheet1
     worksheet = writer.sheets['Sheet1']
-    format_cells(workbook, worksheet)
+    format_cells(data_df, workbook, worksheet)
 
     # Data where start and end date is more than 6 days
     long_period = find_course_more_than_6days(data, days)
     long_period_df = pd.DataFrame(long_period, columns=new_cols).sort_values(by=['Start Date', 'End Date'])
 
-    long_period_df.to_excel(writer, sheet_name='Course > 6 days', index=False)
+    sheet_name = f'Course > {days} days'
+    long_period_df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-    worksheet = writer.sheets['Course > 6 days']
-    format_cells(workbook, worksheet)
+    worksheet = writer.sheets[sheet_name]
+    format_cells(long_period_df, workbook, worksheet)
 
     writer.close()
     
