@@ -1,5 +1,6 @@
 import copy
 from datetime import datetime as dt
+import json
 import pandas as pd
 import os
 import warnings
@@ -19,16 +20,18 @@ new_cols = ['Pillar', 'Course No.', 'Course Title', 'Status', 'Course Run ID', '
             'Session Venue', 'Location by Date', 'Total no. of sessions', 'Registered Pax', 'Enrolled Pax',\
             'Total Pax', 'Venue Category', 'Last Updated']
 
-schools = set()
 
-def get_school_buildings():
+def get_data_from_file():
     """
-    To read school buildings from a text file `schools.txt`.
-    Insert values into a dictionary.
+    To read data from a file called `data.json`.
+    Data consists of `days` and `schools` that is being used in the code.
     """
-    with open("schools.txt") as f:
-        for building in f:
-            schools.add(building.strip())
+    with open("./data.json", 'r') as file:
+        data = json.load(file)
+        schools = set(data['schools'])
+        days = data['days']
+
+        return schools, days
 
 
 def convert_to_dict(session, schedule, enroll):
@@ -46,16 +49,9 @@ def read_files():
     """
     Read excel files and replace empty values with '-'
     """
-    session = pd.read_excel("gvSession.xlsx", usecols=session_headers)
-    schedule = pd.read_excel("Manage Schedule.xlsx", usecols=schedule_headers)
-    enroll = pd.read_excel("Enrolment Summary.xlsx", usecols=enrolment_headers)
-
-    # fill empty values with '-'
-    session = session.fillna("-")
-    schedule = schedule.fillna("-")
-    enroll = enroll.fillna("-")
-
-    get_school_buildings()
+    session = pd.read_excel("gvSession.xlsx", usecols=session_headers).fillna("-")
+    schedule = pd.read_excel("Manage Schedule.xlsx", usecols=schedule_headers).fillna("-")
+    enroll = pd.read_excel("Enrolment Summary.xlsx", usecols=enrolment_headers).fillna("-")
 
     return session, schedule, enroll
 
@@ -176,7 +172,7 @@ def format_location_by_date(sorted_venue):
 
     return res
 
-def find_venue_type(venue):
+def find_venue_type(venue, schools):
     """
     Get the venue type based on session's venue
     """
@@ -214,7 +210,7 @@ def add_total_pax(registered_pax, enr_pax):
         return enr_pax + registered_pax
 
 
-def structure_data(schedule_map, sessions_details, enroll_map, audience_map):
+def structure_data(schedule_map, sessions_details, enroll_map, audience_map, schools):
     """
     This function is to structure the data accord to the output.
     Do note that there are quite a number of data manipulation to get the desired output.
@@ -253,7 +249,7 @@ def structure_data(schedule_map, sessions_details, enroll_map, audience_map):
         for venue in venue_data:
             if venue == '-':
                 continue
-            category_venue.append(find_venue_type(venue))    # Label venue type
+            category_venue.append(find_venue_type(venue, schools))    # Label venue type
             sorted_venue.append(change_venue_names(venue))   # Format short forms
 
         location_by_date = format_location_by_date(sorted_venue)
@@ -276,14 +272,14 @@ def structure_data(schedule_map, sessions_details, enroll_map, audience_map):
 
     return res
 
-def find_course_more_than_6days(data):
+def find_course_more_than_6days(data, days):
     res = []
     for i in range(len(data)):
         start_date = dt.strptime(data[i][7], '%Y-%m-%d').date()
         end_date = dt.strptime(data[i][8], '%Y-%m-%d').date()
         
         # if the course start and end dates are more than 6 days apart, add into list
-        if (end_date - start_date).days > 6:
+        if (end_date - start_date).days > days:
             res.append(data[i])
 
     return res
@@ -316,11 +312,13 @@ if __name__ == "__main__":
         exit("Files are missing!")
     
     session, schedule, enroll = read_files()
+    schools, days = get_data_from_file()
+
     session_map, schedule_map, enroll_map = convert_to_dict(session, schedule, enroll)
     sessions_details = map_sessions(session, session_map)
     audience_map = get_course_audience(schedule_map)
 
-    data = structure_data(schedule_map, sessions_details, enroll_map, audience_map)
+    data = structure_data(schedule_map, sessions_details, enroll_map, audience_map, schools)
 
     current_datetime = dt.now().strftime("%Y%m%d_%H%M")
     filename = f'CDL_{current_datetime}.xlsx'
@@ -328,7 +326,7 @@ if __name__ == "__main__":
     data_df = pd.DataFrame(data, columns=new_cols)
     data_df = data_df.sort_values(by=['Start Date', 'Course No.'])
 
-    writer = pd.ExcelWriter("test.xlsx", engine='xlsxwriter')
+    writer = pd.ExcelWriter(filename, engine='xlsxwriter')
 
     data_df.to_excel(writer, sheet_name='Sheet1', index=False)
 
@@ -339,7 +337,7 @@ if __name__ == "__main__":
     format_cells(workbook, worksheet)
 
     # Data where start and end date is more than 6 days
-    long_period = find_course_more_than_6days(data)
+    long_period = find_course_more_than_6days(data, days)
     long_period_df = pd.DataFrame(long_period, columns=new_cols).sort_values(by=['Start Date', 'End Date'])
 
     long_period_df.to_excel(writer, sheet_name='Course > 6 days', index=False)
