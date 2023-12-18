@@ -140,13 +140,16 @@ def verify_bookings(tms, fbs_dict):
                     # Check start time earlier or equal to the course start time, and
                     # check end time is later or equal to the course end time
                     if fbs_start_time <= str(value['S-Time']) and fbs_item['End'] >= str(value['E-Time']):
-                        # Check the venue names
+                        # Check TMS venue name against FBS booking venue for the course and session date
                         if fbs_item['Venue'] == value['Venue']:
                             val.append('Venue matched')
+                        # If the venue is Online class
                         elif value['Venue'] == 'Online Class':
                             val.append('No booking needed')
+                        # If the venue is mismatched
                         else:
                             val.append('Venue NOT matched')
+                    # If the start or end time is beyond the booking time
                     else:
                         val.append('Timing exceeds booking')
 
@@ -180,6 +183,7 @@ if __name__ == "__main__":
 
     filename = 'output.xlsx'
 
+    # -------------- FORMATTING & OUTPUTTING OF DATA ----------------
     data_df = pd.DataFrame(res, columns=new_tms_header)
 
     writer = pd.ExcelWriter(filename, engine="xlsxwriter")
